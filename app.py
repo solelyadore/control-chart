@@ -269,12 +269,15 @@ def main():
     uploaded_file = st.file_uploader("Upload your Excel file", type=["xlsx"])
     if uploaded_file is not None:
         data = pd.read_excel(uploaded_file)
+        st.dataframe(data)
         columns = st.multiselect("Select columns to plot", options=data.columns)
         if columns:
             xname = st.text_input("X-axis Label", "X")
             yname = st.text_input("Y-axis Label", "Y")
             header = st.text_input("Chart Header", "(I-Chart)")
-            stage = st.text_input("Grouping Stage (optional)", "")
+            # stage = st.text_input("Grouping Stage (optional)", "")
+            options = [""] + list(data.columns)
+            stage = st.selectbox("Grouping Stage (optional)", options=options, index=0)
             
             plot_multiple_icharts(columns, data, xname, yname, header, stage)
 
