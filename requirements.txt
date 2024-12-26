@@ -1,6 +1,6 @@
 streamlit
-matplotlib
-openpyxl
 datetime
 pandas
 numpy
+matplotlib
+openpyxl
