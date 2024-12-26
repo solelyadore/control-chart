@@ -154,19 +154,25 @@ def plot_multiple_icharts(columns, data, xname='X', yname='Y', header='(I-Chart)
     n_rows = int(np.ceil(n_plots / 1))  # 1 column of plots
     n_cols = min(1, n_plots)  # Maximum 1 column
 
-    # Create figure with subplots
-    fig = plt.figure(figsize=(12, 7 * n_rows))
+    # Create figure - adjust height based on number of plots
+    # Increase base height per plot and add extra space for test results
+    fig = plt.figure(figsize=(12, 11 * n_rows))
 
-    for idx, column in enumerate(columns, 1):
-        # Create subplot
-        ax = plt.subplot(n_rows, n_cols, idx)
+    # Create GridSpec to control subplot layout
+    gs = fig.add_gridspec(n_rows, 1, height_ratios=[1] * n_rows, hspace=1.0)
+
+    for idx, column in enumerate(columns):
+        # Create subplot using GridSpec
+        ax = fig.add_subplot(gs[idx])
 
         if group_column:
-            # Group by the specified column (e.g., 'Fiscal year')
             unique_groups = plot_data[group_column].unique()
         else:
-            # Treat all data as a single group without adding a new column
             unique_groups = ['All']
+
+        # Initialize combined rules violations across all groups
+        combined_violations = {i: [] for i in range(1, 9)}
+        point_counter = 0
 
         for group in unique_groups:
             if group_column:
@@ -186,7 +192,6 @@ def plot_multiple_icharts(columns, data, xname='X', yname='Y', header='(I-Chart)
             ax.plot(months, [imr_stats['ucl']] * len(months), linestyle='-', color='#931313', label='UCL', linewidth=0.5)
             ax.plot(months, [imr_stats['lcl']] * len(months), linestyle='-', color='#931313', label='LCL', linewidth=0.5)
 
-            # Add labels for UCL, LCL, and Mean only at the last point of the last group
             if group == unique_groups[-1]:
                 last_month = months.iloc[-1]
                 ax.text(
@@ -204,20 +209,14 @@ def plot_multiple_icharts(columns, data, xname='X', yname='Y', header='(I-Chart)
                     f'\n\n            LCL: {imr_stats["lcl"]:.4f}',
                     color='black', fontsize=11, va='center', ha='left')
 
-            # Check Nelson rules
             rules_violations, checked_points = check_nelson_rules(values, imr_stats['mean'], imr_stats['estimated_sd'])
 
-            # Plot all points as blue circles first
             ax.plot(months, values, 'o', color='#0054A6', markersize=8)
 
-            # Plot violations (red squares) with rule numbers
             for rule, indices in rules_violations.items():
                 for i in indices:
                     ax.plot(months.iloc[i], values[i], 's', color='#CE0000', markersize=8)
-
-                    # Determine text position based on point position relative to mean
                     y_offset = 7 if values[i] > imr_stats['mean'] else -17
-
                     ax.annotate(
                         str(rule),
                         (months.iloc[i], values[i]),
@@ -227,15 +226,47 @@ def plot_multiple_icharts(columns, data, xname='X', yname='Y', header='(I-Chart)
                         color='black',
                         ha='center'
                     )
+                    combined_violations[rule].append(point_counter + i + 1)
 
-            # Add group transitions
+            point_counter += len(values)
+
             if group != unique_groups[-1]:
                 ax.axvline(x=months.iloc[-1] + pd.Timedelta(days=15),
                            color='#754DBD', linestyle=(0, (5, 5)), linewidth=0.5)
 
+        # Generate test results summary
+        if any(combined_violations.values()):
+            test_results = []
+            group_label = f" by {group_column}" if group_column else ""
+            test_results.append(f"Test Results for I Chart of {column}{group_label}")
+            test_results.append("")
+            
+            test_descriptions = {
+                1: "One point more than 3 standard deviations from center line.",
+                2: "9 points in a row on the same side of center line.",
+                3: "6 points in a row all increasing or all decreasing.",
+                4: "14 points in a row alternating up and down.",
+                5: "2 out of 3 points more than 2 standard deviations from center line (on one side of CL).",
+                6: "4 out of 5 points more than 1 standard deviation from center line (on one side of CL).",
+                7: "15 points in a row within 1 standard deviation of center line (above and below CL).",
+                8: "8 points in a row more than 1 standard deviation from center line (above and below CL)."
+            }
+            
+            for rule in sorted(combined_violations.keys()):
+                if combined_violations[rule]:
+                    points = [str(i) for i in combined_violations[rule]]
+                    if points:
+                        test_results.append(f"TEST {rule}. {test_descriptions[rule]}")
+                        test_results.append(f"Test Failed at points:  {', '.join(points)}")
+                        test_results.append("")
+            
+            # Add test results below each chart
+            results_text = '\n'.join(test_results)
+            plt.figtext(0.1, 1 - ((idx + 0.95) / n_rows), results_text,
+                       fontsize=12, va='top', ha='left', wrap=True)
+
         top_y = ax.get_ylim()[1]
 
-        # Add group label at the first point
         for group in unique_groups:
             if group_column:
                 stage_data = plot_data[plot_data[group_column] == group]
@@ -245,8 +276,8 @@ def plot_multiple_icharts(columns, data, xname='X', yname='Y', header='(I-Chart)
             months = stage_data['Month']
             ax.annotate(
                 f'{group}',
-                xy=(months.iloc[0], top_y),  # Position at the top y-limit for the first month
-                xytext=(0, 3),  # Offset slightly above the top
+                xy=(months.iloc[0], top_y),
+                xytext=(0, 3),
                 textcoords='offset points',
                 fontsize=11,
                 color='black',
@@ -254,21 +285,22 @@ def plot_multiple_icharts(columns, data, xname='X', yname='Y', header='(I-Chart)
                 va='bottom'
             )
 
-        # Set titles and labels
         ax.set_title(f'{column} {header}\n', fontsize=15)
         ax.set_xlabel(xname, fontsize=13)
         ax.set_ylabel(yname, fontsize=13)
         ax.tick_params(axis='both', labelsize=11)
 
-        # Set custom ticks and format
         custom_dates = pd.date_range(start=plot_data['Month'].min(), end=plot_data['Month'].max(), freq='6MS')
         ax.set_xticks(custom_dates)
         ax.xaxis.set_major_formatter(mdates.DateFormatter('%b/%Y'))
+        
+        # Rotate and align x-axis labels
+        plt.setp(ax.get_xticklabels(), rotation=45, ha='right')
+        
+        # Adjust subplot spacing
+        ax.set_position([0.1, 1 - ((idx + 0.85) / n_rows), 0.85, 0.7 / n_rows])
 
-        # Rotate and style labels
-        plt.setp(ax.get_xticklabels(), rotation=45, fontsize=11, ha='right')
-
-    plt.tight_layout()
+    # Don't use tight_layout() as we're manually positioning elements
     st.pyplot(fig)
 
 # Example data
