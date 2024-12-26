@@ -1,0 +1,6 @@
+streamlit
+matplotlib
+openpyxl
+datetime
+pandas
+numpy
