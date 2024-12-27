@@ -378,6 +378,16 @@ def load_example_data():
 def main():
     st.title("Control Chart Plotter")
 
+    # Hidden Footer & Header
+    # hide_st_style = """
+    #         <style>
+    #         #MainMenu {visibility: hidden;}
+    #         footer {visibility: hidden;}
+    #         header {visibility: hidden;}
+    #         </style>
+    #         """
+    # st.markdown(hide_st_style, unsafe_allow_html=True)
+
     # Data storage for reactivity
     if "data" not in st.session_state:
         st.session_state.data = None
