@@ -6,118 +6,200 @@ import matplotlib.dates as mdates
 import streamlit as st
 from io import StringIO
 
-def check_nelson_rules(values, mean, sigma):
+# def check_nelson_rules(values, mean, sigma):
+#     n = len(values)
+#     rules_violations = {i: [] for i in range(1, 9)}
+#     checked_points = set()  # Keep track of points that have already violated a rule
+
+#     # Rule 1: Points > 3 sigma (check first)
+#     for i in range(n):
+#         if abs(values[i] - mean) > 3 * sigma:
+#             rules_violations[1].append(i)
+#             checked_points.add(i)
+
+#     # Rule 2: 9 points in a row on same side
+#     for i in range(n-8):
+#         end_point = i + 8
+#         if end_point not in checked_points:
+#             points = values[i:i+9]
+#             if all(x > mean for x in points) or all(x < mean for x in points):
+#                 rules_violations[2].append(end_point)
+#                 checked_points.add(end_point)
+
+#     # Rule 3: 6 points in a row, all increasing or decreasing
+#     for i in range(n-5):
+#         end_point = i + 5
+#         if end_point not in checked_points:
+#             points = values[i:i+6]
+#             if all(points[j] < points[j+1] for j in range(5)) or all(points[j] > points[j+1] for j in range(5)):
+#                 rules_violations[3].append(end_point)
+#                 checked_points.add(end_point)
+
+#     # Rule 4: 14 points alternating
+#     for i in range(n-13):
+#         end_point = i + 13
+#         if end_point not in checked_points:
+#             points = values[i:i+14]
+#             if all((points[j] - points[j+1]) * (points[j+1] - points[j+2]) < 0 for j in range(12)):
+#                 rules_violations[4].append(end_point)
+#                 checked_points.add(end_point)
+
+#     # Rule 5: 2 out of 2 or 2 out of 3 points > 2 sigma
+#     for i in range(n-1):  # Changed range to n-1 to allow checking pairs
+#         # Check 2/2 pattern
+#         if i >= 0:  # Changed condition since we always have enough points for [0,1] pattern
+#             end_point = i + 1
+#             if end_point not in checked_points:
+#                 points_2 = values[i:i+2]
+#                 if (all(x > mean + 2 * sigma for x in points_2)):
+#                     rules_violations[5].append(end_point)
+#                     checked_points.add(end_point)
+#                     continue
+#                 elif (all(x < mean - 2 * sigma for x in points_2)):
+#                     rules_violations[5].append(end_point)
+#                     checked_points.add(end_point)
+#                     continue
+
+#         # Check 2/3 pattern only if 2/2 pattern wasn't found
+#         if i < n-2 and (i+2) not in checked_points:
+#             points_3 = values[i:i+3]
+#             above_2sigma = [x > mean + 2 * sigma for x in points_3]
+#             below_2sigma = [x < mean - 2 * sigma for x in points_3]
+
+#             if (sum(above_2sigma) >= 2 and points_3[-1] > mean + 2 * sigma):
+#                 rules_violations[5].append(i+2)
+#                 checked_points.add(i+2)
+#             elif (sum(below_2sigma) >= 2 and points_3[-1] < mean - 2 * sigma):
+#                 rules_violations[5].append(i+2)
+#                 checked_points.add(i+2)
+
+#     # Rule 6: 4 out of 4 or 4 out of 5 points > 1 sigma
+#     for i in range(n-4):
+#         # Check 4/4 pattern
+#         end_point = i + 3
+#         if end_point not in checked_points:
+#             points_4 = values[i:i+4]
+#             if (all(x > mean + sigma for x in points_4) and
+#                 values[end_point] > mean + sigma):
+#                 rules_violations[6].append(end_point)
+#                 checked_points.add(end_point)
+#                 continue  # Skip 4/5 check if 4/4 pattern found
+#             elif (all(x < mean - sigma for x in points_4) and
+#                   values[end_point] < mean - sigma):
+#                 rules_violations[6].append(end_point)
+#                 checked_points.add(end_point)
+#                 continue  # Skip 4/5 check if 4/4 pattern found
+
+#         # Check 4/5 pattern
+#         end_point = i + 4
+#         if end_point not in checked_points:
+#             points_5 = values[i:i+5]
+#             above_1sigma = [x > mean + sigma for x in points_5]
+#             below_1sigma = [x < mean - sigma for x in points_5]
+
+#             if (sum(above_1sigma) >= 4 and points_5[-1] > mean + sigma):
+#                 rules_violations[6].append(end_point)
+#                 checked_points.add(end_point)
+#             elif (sum(below_1sigma) >= 4 and points_5[-1] < mean - sigma):
+#                 rules_violations[6].append(end_point)
+#                 checked_points.add(end_point)
+
+#     # Rule 7: 15 points within 1 sigma
+#     for i in range(n-14):
+#         end_point = i + 14
+#         if end_point not in checked_points:
+#             points = values[i:i+15]
+#             if all(abs(x - mean) <= sigma for x in points):
+#                 rules_violations[7].append(end_point)
+#                 checked_points.add(end_point)
+
+#     # Rule 8: 8 points > 1 sigma
+#     for i in range(n-7):
+#         end_point = i + 7
+#         if end_point not in checked_points:
+#             points = values[i:i+8]
+#             if all(abs(x - mean) > sigma for x in points):
+#                 rules_violations[8].append(end_point)
+#                 checked_points.add(end_point)
+
+#     return rules_violations, checked_points
+
+def check_nelson_rules(values, mean, sigma, r1, r2, r3, r4, r5, r6, r7, r8):
     n = len(values)
     rules_violations = {i: [] for i in range(1, 9)}
     checked_points = set()  # Keep track of points that have already violated a rule
 
-    # Rule 1: Points > 3 sigma (check first)
+    # Rule 1: Points > r1 sigma
     for i in range(n):
-        if abs(values[i] - mean) > 3 * sigma:
+        if abs(values[i] - mean) > r1 * sigma:
             rules_violations[1].append(i)
             checked_points.add(i)
 
-    # Rule 2: 9 points in a row on same side
-    for i in range(n-8):
-        end_point = i + 8
+    # Rule 2: r2 points in a row on same side
+    for i in range(n - r2 + 1):
+        end_point = i + r2 - 1
         if end_point not in checked_points:
-            points = values[i:i+9]
+            points = values[i:i + r2]
             if all(x > mean for x in points) or all(x < mean for x in points):
                 rules_violations[2].append(end_point)
                 checked_points.add(end_point)
 
-    # Rule 3: 6 points in a row, all increasing or decreasing
-    for i in range(n-5):
-        end_point = i + 5
+    # Rule 3: r3 points in a row, all increasing or decreasing
+    for i in range(n - r3 + 1):
+        end_point = i + r3 - 1
         if end_point not in checked_points:
-            points = values[i:i+6]
-            if all(points[j] < points[j+1] for j in range(5)) or all(points[j] > points[j+1] for j in range(5)):
+            points = values[i:i + r3]
+            if all(points[j] < points[j + 1] for j in range(r3 - 1)) or all(points[j] > points[j + 1] for j in range(r3 - 1)):
                 rules_violations[3].append(end_point)
                 checked_points.add(end_point)
 
-    # Rule 4: 14 points alternating
-    for i in range(n-13):
-        end_point = i + 13
+    # Rule 4: r4 points alternating
+    for i in range(n - r4 + 1):
+        end_point = i + r4 - 1
         if end_point not in checked_points:
-            points = values[i:i+14]
-            if all((points[j] - points[j+1]) * (points[j+1] - points[j+2]) < 0 for j in range(12)):
+            points = values[i:i + r4]
+            if all((points[j] - points[j + 1]) * (points[j + 1] - points[j + 2]) < 0 for j in range(r4 - 2)):
                 rules_violations[4].append(end_point)
                 checked_points.add(end_point)
 
-    # Rule 5: 2 out of 2 or 2 out of 3 points > 2 sigma
-    for i in range(n-1):  # Changed range to n-1 to allow checking pairs
-        # Check 2/2 pattern
-        if i >= 0:  # Changed condition since we always have enough points for [0,1] pattern
-            end_point = i + 1
-            if end_point not in checked_points:
-                points_2 = values[i:i+2]
-                if (all(x > mean + 2 * sigma for x in points_2)):
-                    rules_violations[5].append(end_point)
-                    checked_points.add(end_point)
-                    continue
-                elif (all(x < mean - 2 * sigma for x in points_2)):
-                    rules_violations[5].append(end_point)
-                    checked_points.add(end_point)
-                    continue
-
-        # Check 2/3 pattern only if 2/2 pattern wasn't found
-        if i < n-2 and (i+2) not in checked_points:
-            points_3 = values[i:i+3]
-            above_2sigma = [x > mean + 2 * sigma for x in points_3]
-            below_2sigma = [x < mean - 2 * sigma for x in points_3]
-
-            if (sum(above_2sigma) >= 2 and points_3[-1] > mean + 2 * sigma):
-                rules_violations[5].append(i+2)
-                checked_points.add(i+2)
-            elif (sum(below_2sigma) >= 2 and points_3[-1] < mean - 2 * sigma):
-                rules_violations[5].append(i+2)
-                checked_points.add(i+2)
-
-    # Rule 6: 4 out of 4 or 4 out of 5 points > 1 sigma
-    for i in range(n-4):
-        # Check 4/4 pattern
-        end_point = i + 3
+    # Rule 5: r5 out of r5+1 points > 2 sigma
+    for i in range(n - (r5 + 1) + 1):
+        end_point = i + (r5 + 1) - 1
         if end_point not in checked_points:
-            points_4 = values[i:i+4]
-            if (all(x > mean + sigma for x in points_4) and
-                values[end_point] > mean + sigma):
-                rules_violations[6].append(end_point)
-                checked_points.add(end_point)
-                continue  # Skip 4/5 check if 4/4 pattern found
-            elif (all(x < mean - sigma for x in points_4) and
-                  values[end_point] < mean - sigma):
-                rules_violations[6].append(end_point)
-                checked_points.add(end_point)
-                continue  # Skip 4/5 check if 4/4 pattern found
+            points = values[i:i + (r5 + 1)]
+            above_2sigma = [x > mean + 2 * sigma for x in points]
+            below_2sigma = [x < mean - 2 * sigma for x in points]
 
-        # Check 4/5 pattern
-        end_point = i + 4
+            if sum(above_2sigma) >= r5 or sum(below_2sigma) >= r5:
+                rules_violations[5].append(end_point)
+                checked_points.add(end_point)
+
+    # Rule 6: r6 out of r6+1 points > 1 sigma
+    for i in range(n - (r6 + 1) + 1):
+        end_point = i + (r6 + 1) - 1
         if end_point not in checked_points:
-            points_5 = values[i:i+5]
-            above_1sigma = [x > mean + sigma for x in points_5]
-            below_1sigma = [x < mean - sigma for x in points_5]
+            points = values[i:i + (r6 + 1)]
+            above_1sigma = [x > mean + sigma for x in points]
+            below_1sigma = [x < mean - sigma for x in points]
 
-            if (sum(above_1sigma) >= 4 and points_5[-1] > mean + sigma):
-                rules_violations[6].append(end_point)
-                checked_points.add(end_point)
-            elif (sum(below_1sigma) >= 4 and points_5[-1] < mean - sigma):
+            if sum(above_1sigma) >= r6 or sum(below_1sigma) >= r6:
                 rules_violations[6].append(end_point)
                 checked_points.add(end_point)
 
-    # Rule 7: 15 points within 1 sigma
-    for i in range(n-14):
-        end_point = i + 14
+    # Rule 7: r7 points within 1 sigma
+    for i in range(n - r7 + 1):
+        end_point = i + r7 - 1
         if end_point not in checked_points:
-            points = values[i:i+15]
+            points = values[i:i + r7]
             if all(abs(x - mean) <= sigma for x in points):
                 rules_violations[7].append(end_point)
                 checked_points.add(end_point)
 
-    # Rule 8: 8 points > 1 sigma
-    for i in range(n-7):
-        end_point = i + 7
+    # Rule 8: r8 points > 1 sigma
+    for i in range(n - r8 + 1):
+        end_point = i + r8 - 1
         if end_point not in checked_points:
-            points = values[i:i+8]
+            points = values[i:i + r8]
             if all(abs(x - mean) > sigma for x in points):
                 rules_violations[8].append(end_point)
                 checked_points.add(end_point)
@@ -141,12 +223,12 @@ def calculate_imr_limits(values):
         'lcl': lcl
     }
 
-def plot_multiple_icharts(columns, data, xname='X', yname='Y', header='(I-Chart)', stage=''):
+def plot_multiple_icharts(columns, data, xname='X', yname='Y', header='(I-Chart)', stage='', r1=3, r2=9, r3=6, r4=14, r5=2, r6=4, r7=15, r8=8):
     # Create a copy of the data to avoid modifying the original
     plot_data = data.copy()
     
     # Use the specified stage for grouping, or blank if stage is empty
-    print(stage)
+    # print(stage)
     group_column = stage if stage.strip() else None
 
     # Calculate number of rows and columns for subplot grid
@@ -209,7 +291,7 @@ def plot_multiple_icharts(columns, data, xname='X', yname='Y', header='(I-Chart)
                     f'\n\n            LCL: {imr_stats["lcl"]:.4f}',
                     color='black', fontsize=11, va='center', ha='left')
 
-            rules_violations, checked_points = check_nelson_rules(values, imr_stats['mean'], imr_stats['estimated_sd'])
+            rules_violations, checked_points = check_nelson_rules(values, imr_stats['mean'], imr_stats['estimated_sd'], r1, r2, r3, r4, r5, r6, r7, r8)
 
             ax.plot(months, values, 'o', color='#0054A6', markersize=8)
 
@@ -241,15 +323,26 @@ def plot_multiple_icharts(columns, data, xname='X', yname='Y', header='(I-Chart)
             test_results.append(f"Test Results for I Chart of {column}{group_label}")
             test_results.append("")
             
+            # test_descriptions = {
+            #     1: "One point more than 3 standard deviations from center line.",
+            #     2: "9 points in a row on the same side of center line.",
+            #     3: "6 points in a row all increasing or all decreasing.",
+            #     4: "14 points in a row alternating up and down.",
+            #     5: "2 out of 3 points more than 2 standard deviations from center line (on one side of CL).",
+            #     6: "4 out of 5 points more than 1 standard deviation from center line (on one side of CL).",
+            #     7: "15 points in a row within 1 standard deviation of center line (above and below CL).",
+            #     8: "8 points in a row more than 1 standard deviation from center line (above and below CL)."
+            # }
+
             test_descriptions = {
-                1: "One point more than 3 standard deviations from center line.",
-                2: "9 points in a row on the same side of center line.",
-                3: "6 points in a row all increasing or all decreasing.",
-                4: "14 points in a row alternating up and down.",
-                5: "2 out of 3 points more than 2 standard deviations from center line (on one side of CL).",
-                6: "4 out of 5 points more than 1 standard deviation from center line (on one side of CL).",
-                7: "15 points in a row within 1 standard deviation of center line (above and below CL).",
-                8: "8 points in a row more than 1 standard deviation from center line (above and below CL)."
+                1: f"One point more than {r1} standard deviations from center line.",
+                2: f"{r2} points in a row on the same side of center line.",
+                3: f"{r3} points in a row all increasing or all decreasing.",
+                4: f"{r4} points in a row alternating up and down.",
+                5: f"{r5} out of {r5 + 1} points more than 2 standard deviations from center line (on one side of CL).",
+                6: f"{r6} out of {r6 + 1} points more than 1 standard deviation from center line (on one side of CL).",
+                7: f"{r7} points in a row within 1 standard deviation of center line (above and below CL).",
+                8: f"{r8} points in a row more than 1 standard deviation from center line (above and below CL)."
             }
             
             for rule in sorted(combined_violations.keys()):
@@ -419,6 +512,17 @@ def main():
         plot_columns = [col for col in data.columns if col != 'Month']
         columns = st.multiselect("Select columns to plot", options=plot_columns)
         
+        # Rule inputs
+        st.sidebar.title("Rule Settings")
+        r1 = st.sidebar.number_input("Rule 1: Points beyond Nσ", min_value=1, value=3, step=1)
+        r2 = st.sidebar.number_input("Rule 2: Points on same side", min_value=1, value=9, step=1)
+        r3 = st.sidebar.number_input("Rule 3: Points increasing or decreasing", min_value=2, value=6, step=1)
+        r4 = st.sidebar.number_input("Rule 4: Points alternating", min_value=2, value=14, step=1)
+        r5 = st.sidebar.number_input("Rule 5: N out of N+1 beyond 2σ", min_value=2, value=2, step=1)
+        r6 = st.sidebar.number_input("Rule 6: N out of N+1 beyond 1σ", min_value=2, value=4, step=1)
+        r7 = st.sidebar.number_input("Rule 7: Points within 1σ", min_value=2, value=15, step=1)
+        r8 = st.sidebar.number_input("Rule 8: Points beyond 1σ", min_value=2, value=8, step=1)
+        
         if columns:
             xname = st.text_input("X-axis Label", "X")
             yname = st.text_input("Y-axis Label", "Y")
@@ -427,7 +531,7 @@ def main():
             options = [""] + list(data.columns)
             stage = st.selectbox("Grouping Stage (optional)", options=options, index=0)
             
-            plot_multiple_icharts(columns, data, xname, yname, header, stage)
+            plot_multiple_icharts(columns, data, xname, yname, header, stage, r1, r2, r3, r4, r5, r6, r7, r8)
     else:
         st.info("Please upload a file or load the example data.")
 
