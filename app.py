@@ -357,20 +357,15 @@ def main():
     # Display data if available
     if st.session_state.data is not None:
         data = st.session_state.data
-
+        
         # Ensure 'Month' column exists and is in datetime format
         if 'Month' not in data.columns:
             st.error("The data must contain a 'Month' column.")
             return
-
+        
         if not pd.api.types.is_datetime64_any_dtype(data['Month']):
             data['Month'] = pd.to_datetime(data['Month'], errors='coerce')
-
-        # Format 'Month' and 'Fiscal year'
-        data['Month'] = data['Month'].dt.strftime('%b %Y')  # Format Month as "Oct 2019"
-        data['Fiscal year'] = data['Fiscal year'].astype(str)  # Display Fiscal year without commas
-
-        # Display the formatted data
+        
         st.dataframe(data)
         
         # Remove 'Month' from selectable columns for plotting
