@@ -366,7 +366,14 @@ def main():
         if not pd.api.types.is_datetime64_any_dtype(data['Month']):
             data['Month'] = pd.to_datetime(data['Month'], errors='coerce')
         
-        st.dataframe(data)
+        display_data = data.copy()
+
+        # Format 'Month' to display as "MMM YYYY" and ensure 'Fiscal year' has no commas
+        display_data['Month'] = display_data['Month'].dt.strftime('%b %Y')  # Format Month
+        display_data['Fiscal year'] = display_data['Fiscal year'].astype(str)  # Convert Fiscal year to string
+
+        # Display the formatted data in the table
+        st.dataframe(display_data)
         
         # Remove 'Month' from selectable columns for plotting
         plot_columns = [col for col in data.columns if col != 'Month']
