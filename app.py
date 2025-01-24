@@ -368,7 +368,7 @@ def main():
 
         # Format 'Month' and 'Fiscal year'
         data['Month'] = data['Month'].dt.strftime('%b %Y')  # Format Month as "Oct 2019"
-        data['Fiscal year'] = data['Fiscal year'].astype(int)  # Display Fiscal year without commas
+        data['Fiscal year'] = data['Fiscal year'].astype('int64')  # Display Fiscal year without commas
 
         # Display the formatted data
         st.dataframe(data)
