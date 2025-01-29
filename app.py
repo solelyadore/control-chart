@@ -214,7 +214,7 @@ def plot_multiple_icharts(columns, data, xname='X', yname='Y', header='(I-Chart)
                 7: f"{r7} points in a row within 1 standard deviation of center line (above and below CL).",
                 8: f"{r8} points in a row more than 1 standard deviation from center line (above and below CL)."
             }
-            
+
             for rule in sorted(combined_violations.keys()):
                 if combined_violations[rule]:
                     points = [str(i) for i in combined_violations[rule]]
@@ -222,7 +222,7 @@ def plot_multiple_icharts(columns, data, xname='X', yname='Y', header='(I-Chart)
                         test_results.append(f"TEST {rule}. {test_descriptions[rule]}")
                         test_results.append(f"Test Failed at points:  {', '.join(points)}")
                         test_results.append("")
-            
+
             # Add test results below each chart
             results_text = '\n'.join(test_results)
             plt.figtext(0.1, 1 - ((idx + 0.95) / n_rows), results_text,
@@ -348,7 +348,7 @@ def main():
     # Button to load example file
     if st.button("Load Example File"):
         st.session_state.data = load_example_data()
-    
+
     # File uploader for custom data
     uploaded_file = st.file_uploader("Upload your Excel file", type=["xlsx"])
     if uploaded_file:
@@ -378,7 +378,7 @@ def main():
         # Remove 'Month' from selectable columns for plotting
         plot_columns = [col for col in data.columns if col != 'Month']
         columns = st.multiselect("Select columns to plot", options=plot_columns)
-        
+
         # Rule inputs
         st.sidebar.title("Rule Settings")
         r1 = st.sidebar.number_input("Rule 1: Points beyond Nσ", min_value=1, value=3, step=1)
@@ -389,7 +389,7 @@ def main():
         r6 = st.sidebar.number_input("Rule 6: N out of N+1 beyond 1σ", min_value=2, value=4, step=1)
         r7 = st.sidebar.number_input("Rule 7: Points within 1σ", min_value=2, value=15, step=1)
         r8 = st.sidebar.number_input("Rule 8: Points beyond 1σ", min_value=2, value=8, step=1)
-        
+
         if columns:
             xname = st.text_input("X-axis Label", "X")
             yname = st.text_input("Y-axis Label", "Y")
@@ -397,7 +397,7 @@ def main():
             # Include an optional grouping stage
             options = [""] + list(data.columns)
             stage = st.selectbox("Grouping Stage (optional)", options=options, index=0)
-            
+
             plot_multiple_icharts(columns, data, xname, yname, header, stage, r1, r2, r3, r4, r5, r6, r7, r8)
     else:
         st.info("Please upload a file or load the example data.")
